@@ -1,0 +1,33 @@
+ using Symbolics
+ using QuantumOptics
+ using StochasticAD
+ 
+  #Demo function to get the input state parameter (α) and return the derivation of fidelity between input state and the output state after applying measurement
+ function measurement(α)
+
+              @variables θ::Real #θ is the measurement operator parameter
+
+              # Input Ket definition as |\psi_in>=α|0>+β|1>, by employing QuantumOptics.jl
+              β=sqrt(1-α^2)
+              basis=FockBasis(1)
+              x=Ket(basis,[α,β])
+              Psi_in=tensor(x,dagger(x))
+
+              # Measurement operators
+              Z=Ket(basis,[1,0])
+              Zero=tensor(Z,dagger(Z))
+              O=Ket(basis,[0,1])
+              One=tensor(O,dagger(O))
+              M0(θ)=cos(θ)*Zero+sin(θ)*One
+              M1(θ)=sin(θ)*Zero+cos(θ)*One
+
+              # Applying measurement
+              Psi_out(θ)=M0(θ)*Psi_in*adjoint(M0(θ))+M1(θ)*Psi_in*adjoint(M1(θ))
+
+              #Compute fidelity as the overlap beteen input and output state
+              fid(θ)=dagger(x)*Psi_out(θ)*x
+
+              #Compute the gradient with respect to θ, by employing StochasticAD.jl
+              der=derivative_estimate(fid,θ)
+              return der
+ end
